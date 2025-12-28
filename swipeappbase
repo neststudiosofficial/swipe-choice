@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Swipe Choice UI</title>
+  <style>
+    :root{
+      --bg:#0b0f1a;
+      --panel:#121a2b;
+      --card:#0f1730;
+      --text:#e9eeff;
+      --muted:#9fb0ff;
+      --shadow: 0 20px 50px rgba(0,0,0,.35);
+      --radius: 20px;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 20% 0%, #1a2b7a33, transparent),
+                  radial-gradient(1200px 800px at 80% 20%, #7a1a6b22, transparent),
+                  var(--bg);
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+    }
+
+    .app{
+      width:min(920px, 100%);
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      gap:14px;
+    }
+
+    .header{
+      background: linear-gradient(180deg, #1d2b5a55, #0f152c55);
+      border: 1px solid #2a3a7a55;
+      border-radius: var(--radius);
+      padding:16px 16px;
+      box-shadow: var(--shadow);
+    }
+    .title{
+      font-size: clamp(18px, 2.2vw, 22px);
+      font-weight: 700;
+      margin:0 0 6px 0;
+    }
+    .subtitle{
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.35;
+    }
+
+    .stage{
+      position:relative;
+      background: linear-gradient(180deg, #0f152c88, #0b0f1a88);
+      border: 1px solid #26346b55;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:18px;
+      display:grid;
+      grid-template-columns: 1fr;
+      align-items:center;
+      justify-items:center;
+      overflow:hidden;
+      min-height: 420px;
+      touch-action: pan-y; /* allow page scroll vertically, but we handle horizontal drag */
+    }
+
+    .targets{
+      width:100%;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+      margin-top:14px;
+    }
+
+    .target{
+      border-radius: 18px;
+      padding:14px 14px;
+      border:1px solid #2a3a7a55;
+      background: rgba(18,26,43,.65);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-height: 86px;
+      justify-content:center;
+      transition: transform .12s ease, border-color .12s ease, background .12s ease, filter .12s ease;
+      filter: saturate(1);
+    }
+    .target strong{ font-size:14px; letter-spacing:.3px; }
+    .target span{ color:var(--muted); font-size:13px; line-height:1.25; }
+
+    .target.active{
+      transform: scale(1.02);
+      border-color: #6ea8ff99;
+      background: rgba(40,80,200,.18);
+      filter: saturate(1.3);
+    }
+    .target.active.left{
+      border-color:#ff6ea899;
+      background: rgba(200,40,120,.15);
+    }
+
+    .card{
+      width:min(560px, 92%);
+      border-radius: 22px;
+      background: linear-gradient(180deg, #16224a, #0f1730);
+      border: 1px solid #2a3a7a66;
+      box-shadow: 0 28px 60px rgba(0,0,0,.45);
+      padding:18px;
+      user-select:none;
+      touch-action:none; /* we’ll handle dragging on the card itself */
+      cursor: grab;
+      position:relative;
+      transform: translate3d(0,0,0) rotate(0deg);
+      transition: transform 220ms ease, opacity 220ms ease;
+    }
+    .card:active{ cursor: grabbing; }
+
+    .qRow{
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .badge{
+      width:34px;height:34px;
+      border-radius: 12px;
+      display:grid;
+      place-items:center;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.14);
+      font-weight:800;
+    }
+    .question{
+      margin:0;
+      font-size: clamp(16px, 2vw, 20px);
+      line-height:1.25;
+      font-weight:750;
+    }
+    .hint{
+      margin: 8px 0 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.3;
+    }
+
+    .choicePills{
+      display:flex;
+      gap:10px;
+      margin-top:12px;
+      flex-wrap:wrap;
+    }
+    .pill{
+      padding:10px 12px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(0,0,0,.22);
+      font-size: 13px;
+      color: var(--text);
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .dot{
+      width:8px;height:8px;border-radius:999px;
+      background: rgba(255,255,255,.25);
+    }
+
+    .footer{
+      display:flex;
+      gap:10px;
+      justify-content:space-between;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .btnRow{ display:flex; gap:10px; }
+    button{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(18,26,43,.65);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px 14px;
+      font-weight:650;
+      cursor:pointer;
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+    button:hover{ transform: translateY(-1px); border-color: rgba(255,255,255,.22); }
+    button:active{ transform: translateY(0px); }
+    .status{
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .overlayLabel{
+      position:absolute;
+      top:14px;
+      padding:10px 14px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.18);
+      font-weight: 800;
+      letter-spacing: .3px;
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity .12s ease, transform .12s ease;
+      pointer-events:none;
+    }
+    .overlayLabel.left{
+      left:14px;
+      background: rgba(200,40,120,.18);
+    }
+    .overlayLabel.right{
+      right:14px;
+      background: rgba(40,120,200,.18);
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <p class="title">Swipe to Choose</p>
+      <p class="subtitle">Drag the card left or right (mouse or finger). Release to lock in a choice, or use the buttons.</p>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="card" id="card" role="group" aria-label="Swipe card">
+        <div class="overlayLabel left" id="labelLeft">LEFT</div>
+        <div class="overlayLabel right" id="labelRight">RIGHT</div>
+
+        <div class="qRow">
+          <div class="badge" id="badge">1</div>
+          <div>
+            <p class="question" id="question">Which would you pick for a weekend?</p>
+            <p class="hint">Tip: small drags won’t count. Commit by swiping far enough.</p>
+          </div>
+        </div>
+
+        <div class="choicePills">
+          <div class="pill" id="pillLeft"><span class="dot"></span><span>Option A: Cabin in the woods</span></div>
+          <div class="pill" id="pillRight"><span class="dot"></span><span>Option B: City hotel</span></div>
+        </div>
+      </div>
+
+      <div class="targets">
+        <div class="target left" id="targetLeft">
+          <strong id="leftTitle">Option A</strong>
+          <span id="leftText">Cabin in the woods</span>
+        </div>
+        <div class="target right" id="targetRight">
+          <strong id="rightTitle">Option B</strong>
+          <span id="rightText">City hotel</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="btnRow">
+        <button id="btnLeft" type="button">Choose Left</button>
+        <button id="btnRight" type="button">Choose Right</button>
+        <button id="btnReset" type="button">Reset</button>
+        <button id="btnNext" type="button">Next Question</button>
+      </div>
+      <div class="status" id="status">No selection yet.</div>
+    </div>
+  </div>
+
+  <script>
+    // Simple question set. Replace with your own data structure.
+    const questions = [
+      {
+        q: "Which would you pick for a weekend?",
+        left: { title: "Option A", text: "Cabin in the woods" },
+        right:{ title: "Option B", text: "City hotel" }
+      },
+      {
+        q: "What style fits your content more?",
+        left: { title: "Option A", text: "Fast cuts + memes" },
+        right:{ title: "Option B", text: "Cinematic + slow build" }
+      },
+      {
+        q: "Would you rather…",
+        left: { title: "Option A", text: "Be early everywhere" },
+        right:{ title: "Option B", text: "Be late but legendary" }
+      }
+    ];
+
+    const stage = document.getElementById("stage");
+    const card = document.getElementById("card");
+    const targetLeft = document.getElementById("targetLeft");
+    const targetRight = document.getElementById("targetRight");
+    const labelLeft = document.getElementById("labelLeft");
+    const labelRight = document.getElementById("labelRight");
+
+    const questionEl = document.getElementById("question");
+    const badgeEl = document.getElementById("badge");
+    const leftTitleEl = document.getElementById("leftTitle");
+    const leftTextEl = document.getElementById("leftText");
+    const rightTitleEl = document.getElementById("rightTitle");
+    const rightTextEl = document.getElementById("rightText");
+    const pillLeft = document.getElementById("pillLeft");
+    const pillRight = document.getElementById("pillRight");
+
+    const statusEl = document.getElementById("status");
+    const btnLeft = document.getElementById("btnLeft");
+    const btnRight = document.getElementById("btnRight");
+    const btnReset = document.getElementById("btnReset");
+    const btnNext = document.getElementById("btnNext");
+
+    let idx = 0;
+
+    function loadQuestion(i){
+      const item = questions[i];
+      badgeEl.textContent = String(i + 1);
+      questionEl.textContent = item.q;
+
+      leftTitleEl.textContent = item.left.title;
+      leftTextEl.textContent = item.left.text;
+      rightTitleEl.textContent = item.right.title;
+      rightTextEl.textContent = item.right.text;
+
+      pillLeft.querySelector("span:last-child").textContent = `${item.left.title}: ${item.left.text}`;
+      pillRight.querySelector("span:last-child").textContent = `${item.right.title}: ${item.right.text}`;
+
+      statusEl.textContent = "No selection yet.";
+      resetCard(true);
+    }
+
+    // Drag logic (Pointer Events → works on mouse + touch + pen)
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let dx = 0;
+    let dy = 0;
+
+    const DEADZONE_PX = 60; // min horizontal movement required to count
+    const COMMIT_PX = 160;  // commit threshold
+    const ROTATE_MAX_DEG = 12;
+
+    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+    function setActiveTargets(x){
+      targetLeft.classList.toggle("active", x < -DEADZONE_PX);
+      targetRight.classList.toggle("active", x > DEADZONE_PX);
+
+      targetLeft.classList.toggle("left", x < -DEADZONE_PX); // for coloring class
+      // show overlay labels
+      const leftOpacity = clamp((-x - DEADZONE_PX) / 120, 0, 1);
+      const rightOpacity = clamp((x - DEADZONE_PX) / 120, 0, 1);
+      labelLeft.style.opacity = leftOpacity;
+      labelLeft.style.transform = `translateY(${(-6 + leftOpacity*6)}px)`;
+      labelRight.style.opacity = rightOpacity;
+      labelRight.style.transform = `translateY(${(-6 + rightOpacity*6)}px)`;
+    }
+
+    function resetTargets(){
+      targetLeft.classList.remove("active","left");
+      targetRight.classList.remove("active");
+      labelLeft.style.opacity = 0;
+      labelRight.style.opacity = 0;
+      labelLeft.style.transform = "translateY(-6px)";
+      labelRight.style.transform = "translateY(-6px)";
+    }
+
+    function resetCard(skipAnim=false){
+      if(skipAnim){
+        card.style.transition = "none";
+        card.style.opacity = "1";
+      } else {
+        card.style.transition = "transform 220ms ease, opacity 220ms ease";
+      }
+      dx = 0; dy = 0;
+      card.style.transform = `translate3d(0,0,0) rotate(0deg)`;
+      resetTargets();
+      if(skipAnim){
+        // force reflow then restore transitions
+        card.getBoundingClientRect();
+        card.style.transition = "transform 220ms ease, opacity 220ms ease";
+      }
+    }
+
+    function commitChoice(side){
+      const isLeft = side === "left";
+      const flyX = isLeft ? -stage.clientWidth : stage.clientWidth;
+      const rot = isLeft ? -ROTATE_MAX_DEG : ROTATE_MAX_DEG;
+
+      statusEl.textContent = `Selected: ${isLeft ? questions[idx].left.title : questions[idx].right.title}`;
+
+      card.style.transition = "transform 260ms ease, opacity 260ms ease";
+      card.style.transform = `translate3d(${flyX}px, ${dy}px, 0) rotate(${rot}deg)`;
+      card.style.opacity = "0";
+
+      // After anim, reset for next
+      window.setTimeout(() => {
+        resetCard(true);
+      }, 280);
+    }
+
+    card.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      card.setPointerCapture(e.pointerId);
+      startX = e.clientX;
+      startY = e.clientY;
+      dx = 0; dy = 0;
+      card.style.transition = "none";
+    });
+
+    card.addEventListener("pointermove", (e) => {
+      if(!dragging) return;
+      dx = e.clientX - startX;
+      dy = e.clientY - startY;
+
+      // Slight vertical dampening so it doesn't feel too loose
+      const dampDy = dy * 0.35;
+      const rot = clamp(dx / 28, -ROTATE_MAX_DEG, ROTATE_MAX_DEG);
+
+      card.style.transform = `translate3d(${dx}px, ${dampDy}px, 0) rotate(${rot}deg)`;
+      setActiveTargets(dx);
+    });
+
+    function endDrag(){
+      if(!dragging) return;
+      dragging = false;
+      card.style.transition = "transform 220ms ease, opacity 220ms ease";
+
+      if(dx > COMMIT_PX){
+        commitChoice("right");
+      } else if(dx < -COMMIT_PX){
+        commitChoice("left");
+      } else {
+        resetCard(false);
+      }
+    }
+
+    card.addEventListener("pointerup", endDrag);
+    card.addEventListener("pointercancel", endDrag);
+    card.addEventListener("lostpointercapture", endDrag);
+
+    // Buttons
+    btnLeft.addEventListener("click", () => commitChoice("left"));
+    btnRight.addEventListener("click", () => commitChoice("right"));
+    btnReset.addEventListener("click", () => {
+      statusEl.textContent = "No selection yet.";
+      resetCard(false);
+    });
+    btnNext.addEventListener("click", () => {
+      idx = (idx + 1) % questions.length;
+      loadQuestion(idx);
+    });
+
+    // Init
+    loadQuestion(idx);
+  </script>
+</body>
+</html>
